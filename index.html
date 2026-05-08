@@ -960,7 +960,12 @@ select {
       <div class="stat-grid">
         <div class="stat-card"><div class="stat-num" id="c-stat-info">0</div><div class="stat-label">Informados</div></div>
         <div class="stat-card"><div class="stat-num" id="c-stat-pend">0</div><div class="stat-label">Pendentes</div></div>
-        <div class="stat-card"><div class="stat-num" id="c-stat-total">0</div><div class="stat-label">Total prescritos</div></div>
+        <div class="stat-card"><div class="stat-num" id="c-stat-total">0</div><div class="stat-label">Prescritos</div></div>
+      </div>
+      <div class="stat-grid" style="margin-top:-8px">
+        <div class="stat-card"><div class="stat-num" id="c-stat-fisios">0</div><div class="stat-label">Fisioterapeutas</div></div>
+        <div class="stat-card"><div class="stat-num" id="c-stat-enf">0</div><div class="stat-label">Enf. informadas</div></div>
+        <div class="stat-card"><div class="stat-num" id="c-stat-uti">0</div><div class="stat-label">UTIs informadas</div></div>
       </div>
       <div id="c-pendentes"></div>
     </div>
@@ -1006,6 +1011,11 @@ select {
         <div class="stat-card"><div class="stat-num" id="coord-stat-info">0</div><div class="stat-label">Informados</div></div>
         <div class="stat-card"><div class="stat-num" id="coord-stat-pend">0</div><div class="stat-label">Pendentes</div></div>
         <div class="stat-card"><div class="stat-num" id="coord-stat-total">0</div><div class="stat-label">Prescritos</div></div>
+      </div>
+      <div class="stat-grid" style="margin-top:-8px">
+        <div class="stat-card"><div class="stat-num" id="coord-stat-fisios">0</div><div class="stat-label">Fisioterapeutas</div></div>
+        <div class="stat-card"><div class="stat-num" id="coord-stat-enf">0</div><div class="stat-label">Enf. informadas</div></div>
+        <div class="stat-card"><div class="stat-num" id="coord-stat-uti">0</div><div class="stat-label">UTIs informadas</div></div>
       </div>
     </div>
     <div class="card">
@@ -1101,10 +1111,17 @@ select {
 <div class="view" id="view-ramais">
   <div class="card">
     <div class="card-title">Ramais dos setores</div>
-    <div style="text-align:center;padding:30px 10px">
-      <div style="font-size:48px;margin-bottom:14px">🔧</div>
-      <div style="font-size:16px;font-weight:700;color:var(--verde);margin-bottom:8px">Em construção</div>
-      <div style="font-size:13px;color:var(--texto-soft);line-height:1.6">A lista de ramais está sendo organizada<br>e em breve estará disponível aqui.</div>
+
+    <div class="linha-header">Coordenação</div>
+    <div class="escala-item">
+      <div class="escala-setor">Coordenação de Fisioterapia</div>
+      <div class="escala-fisios" style="font-family:'DM Mono',monospace;font-weight:600;color:var(--verde)">7239</div>
+    </div>
+
+    <div class="linha-header" style="margin-top:10px">Demais ramais</div>
+    <div style="text-align:center;padding:20px 10px">
+      <div style="font-size:32px;margin-bottom:10px">🔧</div>
+      <div style="font-size:13px;color:var(--texto-soft);line-height:1.6">Os demais ramais estão sendo<br>organizados e em breve estarão aqui.</div>
     </div>
   </div>
   <button class="btn btn-secondary" onclick="mostrarView('view-home')">Voltar</button>
@@ -1171,28 +1188,27 @@ const LIMITE = 10;
 
 const SETORES = {
   'CIRÚRGICA / CARDIOLÓGICA': [
-    { id: '4sul', nome: '4º Sul', tipo: 'enfermaria' },
-    { id: '4norte', nome: '4º Norte', tipo: 'enfermaria' },
-    { id: '8sul', nome: '8º Sul', tipo: 'enfermaria' },
+    { id: '4andar', nome: '4º Andar', tipo: 'enfermaria', andar: 4 },
+    { id: '8sul', nome: '8º Sul', tipo: 'enfermaria', andar: 8 },
   ],
   'CUIDADO CLÍNICO': [
-    { id: '3norte', nome: '3º Norte', tipo: 'enfermaria' },
-    { id: '5norte', nome: '5º Norte', tipo: 'enfermaria' },
-    { id: '5sul', nome: '5º Sul', tipo: 'enfermaria' },
-    { id: '6norte', nome: '6º Norte', tipo: 'enfermaria' },
-    { id: '6sul', nome: '6º Sul', tipo: 'enfermaria' },
-    { id: '7norte', nome: '7º Norte', tipo: 'enfermaria' },
+    { id: '3norte', nome: '3º Norte', tipo: 'enfermaria', andar: 3 },
+    { id: '5norte', nome: '5º Norte', tipo: 'enfermaria', andar: 5 },
+    { id: '5sul', nome: '5º Sul', tipo: 'enfermaria', andar: 5 },
+    { id: '6norte', nome: '6º Norte', tipo: 'enfermaria', andar: 6 },
+    { id: '6sul', nome: '6º Sul', tipo: 'enfermaria', andar: 6 },
+    { id: '7norte', nome: '7º Norte', tipo: 'enfermaria', andar: 7 },
   ],
   'ONCOHEMATOLOGIA / TMO': [
-    { id: '7sul', nome: '7º Sul', tipo: 'oncologia' },
+    { id: '7sul', nome: '7º Sul', tipo: 'oncologia', andar: 7 },
   ],
   'UNIDADES FECHADAS': [
-    { id: 'uti3sul', nome: 'UTI 3º Sul', tipo: 'uti' },
-    { id: 'uti4sul', nome: 'UTI 4º Sul', tipo: 'uti' },
-    { id: 'utipac', nome: 'UTI PAC', tipo: 'uti_apoio', apoio_max: 6 },
-    { id: 'uticoronariana', nome: 'UTI Coronariana', tipo: 'uti_apoio', apoio_max: 7 },
-    { id: 'usin', nome: 'USIN', tipo: 'uti' },
-    { id: 'emergencia', nome: 'Emergência', tipo: 'emergencia', fisios: 1 },
+    { id: 'uti3sul', nome: 'UTI 3º Sul', tipo: 'uti', andar: 3 },
+    { id: 'uti4sul', nome: 'UTI 4º Sul', tipo: 'uti', andar: 4 },
+    { id: 'utipac', nome: 'UTI PAC', tipo: 'uti_apoio', apoio_max: 6, andar: 1 },
+    { id: 'uticoronariana', nome: 'UTI Coronariana', tipo: 'uti_apoio', apoio_max: 7, andar: 8 },
+    { id: 'usin', nome: 'USIN', tipo: 'uti', andar: 3 },
+    { id: 'emergencia', nome: 'Emergência', tipo: 'emergencia', fisios: 1, andar: 0 },
   ],
 };
 
@@ -1444,13 +1460,31 @@ function atualizarStats() {
   const pendentes = total - informados;
   const totalP = Object.values(lancamentosCache).reduce((a,b)=>a+(b.prescritos||0),0);
 
+  // Contar fisios únicos (soma de fisio1+2+3 de todos os lançamentos)
+  let totalFisios = 0;
+  let enfInformadas = 0;
+  let utiInformadas = 0;
+  Object.entries(lancamentosCache).forEach(([setorId, l]) => {
+    const s = getSetor(setorId);
+    const nFisios = [l.fisio1, l.fisio2, l.fisio3].filter(Boolean).length;
+    totalFisios += nFisios;
+    if (s && s.tipo === 'enfermaria') enfInformadas++;
+    if (s && (s.tipo === 'uti' || s.tipo === 'uti_apoio' || s.tipo === 'emergencia')) utiInformadas++;
+  });
+
   ['c','coord'].forEach(p => {
     const si = document.getElementById(`${p}-stat-info`);
     const sp = document.getElementById(`${p}-stat-pend`);
     const st = document.getElementById(`${p}-stat-total`);
+    const sf = document.getElementById(`${p}-stat-fisios`);
+    const se = document.getElementById(`${p}-stat-enf`);
+    const su = document.getElementById(`${p}-stat-uti`);
     if (si) si.textContent = informados;
     if (sp) sp.textContent = pendentes;
     if (st) st.textContent = totalP;
+    if (sf) sf.textContent = totalFisios;
+    if (se) se.textContent = enfInformadas;
+    if (su) su.textContent = utiInformadas;
   });
 
   // pendentes chips
@@ -1531,31 +1565,73 @@ window.calcularDim = () => {
   const uticor = TODOS.find(s=>s.id==='uticoronariana');
   const emerg = TODOS.find(s=>s.tipo==='emergencia');
 
-  let excedente = 0;
+  // Calcular excedente por setor de enfermaria
+  const setoresComExcedente = [];
   enfermarias.forEach(s => {
     const l = lancamentosCache[s.id];
-    if (l && l.prescritos > LIMITE) excedente += l.prescritos - LIMITE;
+    if (l && l.prescritos > LIMITE) {
+      setoresComExcedente.push({
+        setor: s,
+        excedente: l.prescritos - LIMITE,
+        prescritos: l.prescritos
+      });
+    }
   });
 
-  let pending = excedente;
+  // Ordenar por maior excedente
+  setoresComExcedente.sort((a,b) => b.excedente - a.excedente);
+
+  // Total de fisios informados (para exibir)
+  const totalFisiosInformados = TODOS.filter(s => s.tipo !== 'oncologia' && lancamentosCache[s.id]).length;
+
+  // Função de distância entre andares
+  const distancia = (andarUTI, andarEnf) => Math.abs(andarUTI - andarEnf);
+
+  // Distribuir apoio com direcionamento
+  function distribuirApoio(unidade, qtdDisponivel) {
+    const direcionamentos = [];
+    let restante = qtdDisponivel;
+    // Clonar lista de excedentes para manipular
+    const fila = setoresComExcedente.map(s => ({...s, pendente: s.excedente}));
+    // Ordenar por maior excedente e depois por proximidade
+    fila.sort((a,b) => {
+      if (b.pendente !== a.pendente) return b.pendente - a.pendente;
+      return distancia(unidade.andar, a.setor.andar) - distancia(unidade.andar, b.setor.andar);
+    });
+    for (const item of fila) {
+      if (restante <= 0) break;
+      if (item.pendente <= 0) continue;
+      const ceder = Math.min(restante, item.pendente);
+      direcionamentos.push({ destino: item.setor.nome, qtd: ceder });
+      item.pendente -= ceder;
+      restante -= ceder;
+    }
+    return { direcionamentos, cedido: qtdDisponivel - restante };
+  }
+
+  let totalExcedente = setoresComExcedente.reduce((a,b)=>a+b.excedente,0);
+  let pending = totalExcedente;
   const apoios = [];
 
   if (pending > 0 && utipac) {
-    const q = Math.min(pending, utipac.apoio_max);
-    pending -= q;
-    if (q > 0) apoios.push({ origem: 'UTI PAC', qtd: q });
+    const qtd = Math.min(pending, utipac.apoio_max);
+    const { direcionamentos } = distribuirApoio(utipac, qtd);
+    pending -= qtd;
+    if (qtd > 0) apoios.push({ origem: 'UTI PAC', qtd, direcionamentos });
   }
   if (pending > 0 && uticor) {
-    const q = Math.min(pending, uticor.apoio_max);
-    pending -= q;
-    if (q > 0) apoios.push({ origem: 'UTI Coronariana', qtd: q });
+    const qtd = Math.min(pending, uticor.apoio_max);
+    const { direcionamentos } = distribuirApoio(uticor, qtd);
+    pending -= qtd;
+    if (qtd > 0) apoios.push({ origem: 'UTI Coronariana', qtd, direcionamentos });
   }
   if (pending > 0 && emerg) {
     const le = lancamentosCache[emerg.id];
     const cap = Math.max(0, LIMITE - (le ? le.prescritos : 0));
-    const q = Math.min(pending, cap);
-    pending -= q;
-    if (q > 0) apoios.push({ origem: 'Emergência', qtd: q });
+    const qtd = Math.min(pending, cap);
+    const { direcionamentos } = distribuirApoio(emerg, qtd);
+    pending -= qtd;
+    if (qtd > 0) apoios.push({ origem: 'Emergência', qtd, direcionamentos });
   }
 
   // Média (sem oncologia)
@@ -1573,18 +1649,24 @@ window.calcularDim = () => {
   if (!apoios.length) {
     apoiosHtml = `<div class="apoio-item">✅ Sem necessidade de apoio neste turno.</div>`;
   } else {
-    apoiosHtml = apoios.map(a =>
-      `<div class="apoio-item">📌 ${a.origem} apoia com <strong>${a.qtd}</strong> paciente${a.qtd>1?'s':''}</div>`
-    ).join('');
+    apoiosHtml = apoios.map(a => {
+      const dirs = a.direcionamentos.map(d =>
+        `<div style="font-size:12px;opacity:0.85;padding-left:12px">↳ ${d.qtd} pac. → ${d.destino}</div>`
+      ).join('');
+      return `<div class="apoio-item">📌 <strong>${a.origem}</strong> apoia ${a.qtd} paciente${a.qtd>1?'s':''}${dirs}</div>`;
+    }).join('');
   }
 
   const avisoHtml = pending > 0
     ? `<div class="alerta-box">⚠️ <strong>${pending}</strong> paciente(s) sem cobertura após todos os apoios disponíveis.</div>`
     : '';
 
+  const fisiosHtml = `<div style="font-size:12px;color:rgba(255,255,255,0.7);margin-bottom:10px">👥 ${totalFisiosInformados} fisioterapeuta${totalFisiosInformados!==1?'s':''} no turno</div>`;
+
   el.innerHTML = `
     <div class="resultado-box">
       <div class="resultado-title">Dimensionamento · ${turnoLabel}</div>
+      ${fisiosHtml}
       ${apoiosHtml}
       ${avisoHtml}
       <div class="media-line"><span>Média</span><span class="media-num">${media}</span></div>
@@ -1595,7 +1677,6 @@ window.calcularDim = () => {
       <button class="btn-copy" onclick="copiarTexto()">📋 Copiar para WhatsApp</button>
     </div>`;
 
-  // Mostrar botão publicar
   const btnPublicar = `
     <button class="btn-copy" style="background:var(--verde);margin-top:8px" onclick="publicarDimensionamento(${JSON.stringify(apoios)}, ${media}, '${turnoLabel}', ${pending})">
       📢 Publicar para fisioterapeutas
@@ -1603,7 +1684,6 @@ window.calcularDim = () => {
     <div id="status-publicacao" style="text-align:center;font-size:12px;color:var(--texto-soft);margin-top:6px"></div>`;
   el.innerHTML += btnPublicar;
 
-  // Salvar no histórico
   salvarHistorico(apoios, media, turnoLabel, pending);
 };
 
@@ -1630,7 +1710,14 @@ window.publicarDimensionamento = async (apoios, media, turnoLabel, excedente) =>
 function gerarTexto(apoios, media, turno, excedente) {
   let txt = `*Divisão Apoios - ${turno}*\n\n`;
   if (apoios.length) {
-    apoios.forEach(a => txt += `• ${a.origem} apoia ${a.qtd} paciente${a.qtd>1?'s':''}\n`);
+    apoios.forEach(a => {
+      txt += `• ${a.origem} apoia ${a.qtd} paciente${a.qtd>1?'s':''}\n`;
+      if (a.direcionamentos && a.direcionamentos.length) {
+        a.direcionamentos.forEach(d => {
+          txt += `  ↳ ${d.qtd} pac. → ${d.destino}\n`;
+        });
+      }
+    });
     if (excedente>0) txt += `⚠️ ${excedente} paciente(s) sem cobertura\n`;
   } else {
     txt += `✅ Sem necessidade de apoio.\n`;
