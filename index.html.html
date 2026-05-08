@@ -1,0 +1,1659 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>FisioHRU · Dimensionamento</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Sora:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --verde: #006633;
+  --verde-mid: #008040;
+  --verde-light: #00a050;
+  --verde-glow: #33cc77;
+  --verde-pale: #e6f5ec;
+  --cream: #f5f7f5;
+  --cream-dark: #e0e8e2;
+  --texto: #1a2a1e;
+  --texto-soft: #4a6050;
+  --branco: #ffffff;
+  --erro: #c0392b;
+  --alerta: #e67e22;
+  --ok: #006633;
+  --azul: #1565c0;
+  --radius: 18px;
+  --radius-sm: 12px;
+  --shadow: 0 4px 20px rgba(0,102,51,0.12);
+  --shadow-lg: 0 8px 40px rgba(0,102,51,0.18);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+body {
+  font-family: 'Sora', sans-serif;
+  background: var(--cream);
+  color: var(--texto);
+  min-height: 100vh;
+  padding-bottom: 60px;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* MARCA D'ÁGUA */
+.watermark {
+  position: fixed;
+  bottom: 0; left: 0; right: 0; top: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+.watermark-text {
+  font-family: 'DM Mono', monospace;
+  font-size: 72px;
+  font-weight: 500;
+  color: rgba(0,102,51,0.04);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  transform: rotate(-35deg);
+  white-space: nowrap;
+  user-select: none;
+}
+.watermark-sub {
+  position: fixed;
+  bottom: 10px;
+  right: 14px;
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  color: rgba(0,102,51,0.3);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  pointer-events: none;
+  z-index: 999;
+}
+
+/* HEADER */
+.header {
+  background: var(--verde);
+  padding: 16px 20px 32px;
+  position: relative;
+  overflow: hidden;
+  z-index: 1;
+}
+.header::before {
+  content: '';
+  position: absolute;
+  top: -40px; right: -40px;
+  width: 140px; height: 140px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.05);
+}
+.header::after {
+  content: '';
+  position: absolute;
+  bottom: -22px; left: 0; right: 0;
+  height: 44px;
+  background: var(--cream);
+  border-radius: 50% 50% 0 0 / 44px 44px 0 0;
+}
+.header-inner { position: relative; z-index: 2; }
+.header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+.logo-area { display: flex; align-items: center; gap: 10px; }
+.logo-cross {
+  width: 32px; height: 32px;
+  background: var(--branco);
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+.logo-text {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: rgba(255,255,255,0.85);
+  text-transform: uppercase;
+  line-height: 1.3;
+}
+.turno-badge {
+  background: rgba(255,255,255,0.15);
+  border: 1px solid rgba(255,255,255,0.3);
+  color: white;
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  padding: 5px 12px;
+  border-radius: 20px;
+  letter-spacing: 0.06em;
+}
+.header-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--branco);
+  line-height: 1.1;
+}
+.header-date {
+  font-size: 11px;
+  color: rgba(255,255,255,0.6);
+  margin-top: 3px;
+  font-family: 'DM Mono', monospace;
+}
+.header-user {
+  font-size: 11px;
+  color: rgba(255,255,255,0.75);
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.user-dot {
+  width: 6px; height: 6px;
+  background: var(--verde-glow);
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* VIEWS */
+.view { display: none; padding: 28px 16px 0; position: relative; z-index: 1; }
+.view.active { display: block; }
+
+/* CARD */
+.card {
+  background: var(--branco);
+  border-radius: var(--radius);
+  padding: 20px;
+  margin-bottom: 16px;
+  box-shadow: var(--shadow);
+}
+.card-title {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--verde-mid);
+  margin-bottom: 16px;
+}
+
+/* FORM */
+label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--texto-soft);
+  margin-bottom: 6px;
+  letter-spacing: 0.03em;
+}
+input[type="text"], input[type="number"], input[type="password"], select, textarea {
+  width: 100%;
+  padding: 13px 16px;
+  border: 1.5px solid var(--cream-dark);
+  border-radius: var(--radius-sm);
+  font-family: 'Sora', sans-serif;
+  font-size: 15px;
+  color: var(--texto);
+  background: var(--cream);
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  -webkit-appearance: none;
+  appearance: none;
+}
+input:focus, select:focus, textarea:focus {
+  border-color: var(--verde-mid);
+  box-shadow: 0 0 0 3px rgba(0,128,64,0.1);
+  background: var(--branco);
+}
+select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23008040' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  padding-right: 40px;
+  cursor: pointer;
+}
+.form-group { margin-bottom: 14px; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+/* BUTTONS */
+.btn {
+  width: 100%;
+  padding: 15px;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-family: 'Sora', sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  letter-spacing: 0.01em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.btn-primary { background: var(--verde); color: white; }
+.btn-primary:active { background: var(--verde-mid); transform: scale(0.98); }
+.btn-secondary {
+  background: var(--cream);
+  color: var(--verde);
+  border: 1.5px solid var(--cream-dark);
+  margin-top: 10px;
+}
+.btn-google {
+  background: white;
+  color: #333;
+  border: 1.5px solid #ddd;
+  font-size: 14px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+.btn-google:active { background: #f5f5f5; }
+.btn-danger { background: var(--erro); color: white; margin-top: 10px; }
+.btn-sm {
+  padding: 10px 16px;
+  font-size: 13px;
+  width: auto;
+}
+
+/* LOGIN */
+.login-box {
+  text-align: center;
+  padding: 10px 0;
+}
+.login-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--texto);
+  margin-bottom: 6px;
+}
+.login-sub {
+  font-size: 13px;
+  color: var(--texto-soft);
+  margin-bottom: 28px;
+  line-height: 1.5;
+}
+.google-icon {
+  width: 20px; height: 20px;
+  flex-shrink: 0;
+}
+
+/* HOME */
+.perfil-btn {
+  background: var(--branco);
+  border: none;
+  border-radius: var(--radius);
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  cursor: pointer;
+  box-shadow: var(--shadow);
+  margin-bottom: 12px;
+  text-align: left;
+  transition: all 0.2s;
+}
+.perfil-btn:active { transform: scale(0.98); box-shadow: var(--shadow-lg); }
+.perfil-icon {
+  width: 50px; height: 50px;
+  border-radius: 14px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 24px;
+  flex-shrink: 0;
+}
+.icon-fisio { background: #e6f5ec; }
+.icon-chefe { background: #e8eaf6; }
+.icon-coord { background: #fff3e0; }
+.perfil-text h3 { font-size: 16px; font-weight: 700; color: var(--texto); margin-bottom: 3px; }
+.perfil-text p { font-size: 12px; color: var(--texto-soft); line-height: 1.4; }
+
+/* FISIO FORM */
+.fisio-names { display: flex; flex-direction: column; gap: 8px; }
+.name-input-wrap { position: relative; }
+.name-num {
+  position: absolute;
+  left: 14px; top: 50%;
+  transform: translateY(-50%);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--verde-mid);
+  font-family: 'DM Mono', monospace;
+}
+.name-input-wrap input { padding-left: 36px; }
+
+.setor-bloqueado {
+  background: #fafafa;
+  border: 1.5px solid #e0e0e0;
+  border-radius: var(--radius-sm);
+  padding: 14px 16px;
+  font-size: 13px;
+  color: #888;
+}
+.setor-bloqueado strong { color: var(--texto); }
+
+/* TURNO SELECTOR */
+.turno-select {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.turno-opt {
+  border: 1.5px solid var(--cream-dark);
+  border-radius: var(--radius-sm);
+  padding: 12px 8px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: var(--cream);
+}
+.turno-opt.selected {
+  border-color: var(--verde-mid);
+  background: var(--verde-pale);
+  color: var(--verde);
+}
+.turno-opt-icon { font-size: 20px; margin-bottom: 4px; }
+.turno-opt-label { font-size: 12px; font-weight: 600; }
+
+/* SUCCESS */
+.success-box {
+  background: linear-gradient(135deg, #f0faf4, #e6f5ec);
+  border: 1.5px solid var(--verde-light);
+  border-radius: var(--radius);
+  padding: 32px 20px;
+  text-align: center;
+}
+.success-icon { font-size: 48px; margin-bottom: 12px; }
+.success-title { font-size: 20px; font-weight: 700; color: var(--verde); margin-bottom: 6px; }
+.success-sub { font-size: 13px; color: var(--texto-soft); line-height: 1.5; }
+
+/* TABS */
+.tabs {
+  display: flex;
+  background: var(--cream-dark);
+  border-radius: var(--radius-sm);
+  padding: 4px;
+  margin-bottom: 16px;
+  overflow-x: auto;
+  gap: 2px;
+}
+.tab {
+  flex: 1;
+  text-align: center;
+  padding: 9px 6px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--texto-soft);
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+  min-width: 0;
+}
+.tab.active {
+  background: var(--branco);
+  color: var(--verde);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
+/* STATS */
+.stat-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.stat-card {
+  background: var(--cream);
+  border-radius: var(--radius-sm);
+  padding: 14px 10px;
+  text-align: center;
+}
+.stat-num {
+  font-family: 'DM Mono', monospace;
+  font-size: 26px;
+  font-weight: 500;
+  color: var(--verde);
+  line-height: 1;
+}
+.stat-label { font-size: 10px; color: var(--texto-soft); margin-top: 4px; font-weight: 500; }
+
+/* LANÇAMENTOS */
+.lancamento-item {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--cream-dark);
+}
+.lancamento-item:last-child { border-bottom: none; }
+.lanc-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 4px;
+}
+.lanc-setor { font-size: 14px; font-weight: 600; color: var(--texto); }
+.lanc-num {
+  font-family: 'DM Mono', monospace;
+  font-size: 22px;
+  font-weight: 500;
+  color: var(--verde);
+}
+.lanc-num.over { color: var(--alerta); }
+.lanc-num.way-over { color: var(--erro); }
+.lanc-fisios { font-size: 11px; color: var(--texto-soft); }
+.lanc-hora { font-size: 10px; color: #bbb; font-family: 'DM Mono', monospace; }
+
+.linha-header {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--verde-mid);
+  padding: 12px 0 4px;
+  border-bottom: 1.5px solid var(--verde-pale);
+  margin-bottom: 4px;
+}
+
+/* PENDENTES */
+.pendente-chip {
+  display: inline-flex;
+  align-items: center;
+  background: #fff3e0;
+  border: 1px solid #ffcc80;
+  border-radius: 20px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 500;
+  color: #bf360c;
+  margin: 3px;
+}
+
+/* RESULTADO */
+.resultado-box {
+  background: var(--verde);
+  border-radius: var(--radius);
+  padding: 20px;
+  margin-bottom: 16px;
+}
+.resultado-title {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--verde-glow);
+  margin-bottom: 14px;
+}
+.apoio-item {
+  background: rgba(255,255,255,0.1);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  margin-bottom: 8px;
+  color: white;
+  font-size: 14px;
+  font-weight: 500;
+}
+.media-line {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255,255,255,0.15);
+  color: white;
+  font-size: 15px;
+  font-weight: 700;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.media-num {
+  font-family: 'DM Mono', monospace;
+  font-size: 32px;
+  color: var(--verde-glow);
+}
+
+/* TEXTO WPP */
+.texto-wpp {
+  background: var(--cream);
+  border: 1.5px solid var(--cream-dark);
+  border-radius: var(--radius-sm);
+  padding: 16px;
+  font-family: 'DM Mono', monospace;
+  font-size: 13px;
+  line-height: 1.8;
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin-bottom: 10px;
+}
+.btn-copy {
+  background: var(--verde-mid);
+  color: white;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 13px;
+  width: 100%;
+  font-family: 'Sora', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.btn-copy:active { background: var(--verde); transform: scale(0.98); }
+
+/* EDIT MODAL */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 100;
+  align-items: flex-end;
+  padding: 16px;
+}
+.modal-overlay.open { display: flex; }
+.modal-inner {
+  background: white;
+  border-radius: var(--radius);
+  padding: 24px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+.modal-title { font-size: 17px; font-weight: 700; margin-bottom: 6px; }
+.modal-sub { font-size: 13px; color: var(--texto-soft); margin-bottom: 20px; }
+
+/* ESCALA */
+.escala-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 11px 0;
+  border-bottom: 1px solid var(--cream-dark);
+}
+.escala-item:last-child { border-bottom: none; }
+.escala-setor { font-size: 13px; font-weight: 600; flex: 1; }
+.escala-fisios { font-size: 11px; color: var(--texto-soft); flex: 2; }
+.escala-status {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-left: 8px;
+}
+.status-ok { background: var(--ok); }
+.status-pendente { background: var(--alerta); }
+.status-vazio { background: #ddd; }
+
+/* GRÁFICO */
+.chart-bar-wrap { margin-bottom: 10px; }
+.chart-bar-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--texto-soft);
+  margin-bottom: 4px;
+}
+.chart-bar-bg {
+  height: 10px;
+  background: var(--cream-dark);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.chart-bar-fill {
+  height: 100%;
+  background: var(--verde-mid);
+  border-radius: 10px;
+  transition: width 0.6s ease;
+}
+.chart-bar-fill.alerta { background: var(--alerta); }
+.chart-bar-fill.ok { background: var(--verde-glow); }
+
+/* HIST */
+.hist-item {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--cream-dark);
+}
+.hist-item:last-child { border-bottom: none; }
+.hist-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+.hist-data { font-size: 13px; font-weight: 600; }
+.hist-turno {
+  font-size: 10px;
+  padding: 3px 8px;
+  border-radius: 10px;
+  font-weight: 600;
+  background: var(--verde-pale);
+  color: var(--verde);
+  font-family: 'DM Mono', monospace;
+}
+.hist-apoio { font-size: 12px; color: var(--texto-soft); }
+
+/* LOADING */
+.loading {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--texto-soft);
+  font-size: 14px;
+}
+.loading-spinner {
+  width: 32px; height: 32px;
+  border: 3px solid var(--cream-dark);
+  border-top-color: var(--verde);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin: 0 auto 14px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* PIN */
+.pin-input {
+  text-align: center;
+  font-size: 24px;
+  font-family: 'DM Mono', monospace;
+  letter-spacing: 0.3em;
+}
+
+/* TOAST */
+.toast {
+  position: fixed;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%) translateY(80px);
+  background: var(--verde);
+  color: white;
+  padding: 12px 24px;
+  border-radius: 30px;
+  font-size: 14px;
+  font-weight: 600;
+  z-index: 999;
+  transition: transform 0.3s ease;
+  white-space: nowrap;
+  box-shadow: var(--shadow-lg);
+}
+.toast.show { transform: translateX(-50%) translateY(0); }
+
+.empty-state {
+  text-align: center;
+  padding: 30px 20px;
+  color: #bbb;
+  font-size: 13px;
+}
+.empty-icon { font-size: 36px; margin-bottom: 10px; }
+
+.btn-reset {
+  background: transparent;
+  color: var(--erro);
+  border: 1.5px solid var(--erro);
+  border-radius: var(--radius-sm);
+  padding: 11px;
+  width: 100%;
+  font-family: 'Sora', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 8px;
+}
+
+.alerta-box {
+  background: #fff8f0;
+  border: 1.5px solid var(--alerta);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  font-size: 13px;
+  color: #7a4010;
+  margin-top: 10px;
+}
+
+.badge-beta {
+  display: inline-block;
+  background: rgba(255,255,255,0.2);
+  color: rgba(255,255,255,0.9);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  padding: 2px 7px;
+  border-radius: 10px;
+  text-transform: uppercase;
+  margin-left: 6px;
+  vertical-align: middle;
+  font-family: 'DM Mono', monospace;
+}
+
+.refresh-btn {
+  background: white;
+  border: 1.5px solid var(--cream-dark);
+  border-radius: var(--radius-sm);
+  padding: 10px;
+  width: 100%;
+  font-family: 'Sora', sans-serif;
+  font-size: 13px;
+  color: var(--texto-soft);
+  cursor: pointer;
+  margin-bottom: 12px;
+  transition: all 0.2s;
+}
+.refresh-btn:active { background: var(--cream); }
+</style>
+</head>
+<body>
+
+<!-- MARCA D'ÁGUA -->
+<div class="watermark"><div class="watermark-text">Okubo</div></div>
+<div class="watermark-sub">© okubo · beta · fisio-hru</div>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-inner">
+    <div class="header-top">
+      <div class="logo-area">
+        <div class="logo-cross">🏥</div>
+        <div class="logo-text">Unimed Fortaleza<br>Fisioterapia</div>
+      </div>
+      <div class="turno-badge" id="turno-badge">—</div>
+    </div>
+    <div class="header-title">Dimensionamento <span class="badge-beta">Beta</span></div>
+    <div class="header-date" id="header-date">—</div>
+    <div class="header-user" id="header-user" style="display:none">
+      <div class="user-dot"></div>
+      <span id="user-email-display"></span>
+    </div>
+  </div>
+</div>
+
+<!-- VIEW: LOADING INICIAL -->
+<div class="view active" id="view-loading">
+  <div class="loading">
+    <div class="loading-spinner"></div>
+    Carregando...
+  </div>
+</div>
+
+<!-- VIEW: LOGIN -->
+<div class="view" id="view-login">
+  <div class="card">
+    <div class="login-box">
+      <div style="font-size:48px;margin-bottom:12px">🏥</div>
+      <div class="login-title">FisioHRU</div>
+      <div class="login-sub">Dimensionamento de fisioterapeutas<br>Hospital Unimed Fortaleza</div>
+      <button class="btn btn-google" onclick="fazerLogin()">
+        <svg class="google-icon" viewBox="0 0 24 24">
+          <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+          <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+          <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+          <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+        </svg>
+        Entrar com Google
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- VIEW: HOME -->
+<div class="view" id="view-home">
+  <button class="perfil-btn" onclick="irParaFisio()">
+    <div class="perfil-icon icon-fisio">🩺</div>
+    <div class="perfil-text">
+      <h3>Fisioterapeuta</h3>
+      <p>Informar quantitativo do setor para o turno</p>
+    </div>
+  </button>
+  <button class="perfil-btn" onclick="irParaPin('chefe')">
+    <div class="perfil-icon icon-chefe">📋</div>
+    <div class="perfil-text">
+      <h3>Chefia de Plantão</h3>
+      <p>Visualizar lançamentos, calcular e gerar texto</p>
+    </div>
+  </button>
+  <button class="perfil-btn" onclick="irParaPin('coord')">
+    <div class="perfil-icon icon-coord">📊</div>
+    <div class="perfil-text">
+      <h3>Coordenação</h3>
+      <p>Painel completo com histórico e gráficos</p>
+    </div>
+  </button>
+  <button class="btn btn-secondary" style="margin-top:4px" onclick="fazerLogout()">Sair da conta</button>
+</div>
+
+<!-- VIEW: FISIO -->
+<div class="view" id="view-fisio">
+  <div class="card">
+    <div class="card-title">Informar prescritos</div>
+
+    <div class="form-group">
+      <label>Turno</label>
+      <div class="turno-select">
+        <div class="turno-opt" onclick="selecionarTurno('manha',this)">
+          <div class="turno-opt-icon">☀️</div>
+          <div class="turno-opt-label">Manhã</div>
+        </div>
+        <div class="turno-opt" onclick="selecionarTurno('tarde',this)">
+          <div class="turno-opt-icon">🌤</div>
+          <div class="turno-opt-label">Tarde</div>
+        </div>
+        <div class="turno-opt" onclick="selecionarTurno('noite',this)">
+          <div class="turno-opt-icon">🌙</div>
+          <div class="turno-opt-label">SN</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Setor</label>
+      <select id="fisio-setor" onchange="onSetorChange()">
+        <option value="">Selecione o setor</option>
+      </select>
+    </div>
+
+    <div id="fisio-bloqueado" style="display:none" class="form-group">
+      <div class="setor-bloqueado" id="fisio-bloqueado-msg"></div>
+    </div>
+
+    <div id="fisio-form-extra" style="display:none">
+      <div class="form-group">
+        <label>Fisioterapeutas no setor (informe todos presentes)</label>
+        <div class="fisio-names">
+          <div class="name-input-wrap">
+            <span class="name-num">1</span>
+            <input type="text" id="fisio-n1" placeholder="Nome do 1º fisioterapeuta">
+          </div>
+          <div class="name-input-wrap">
+            <span class="name-num">2</span>
+            <input type="text" id="fisio-n2" placeholder="2º (opcional)">
+          </div>
+          <div class="name-input-wrap">
+            <span class="name-num">3</span>
+            <input type="text" id="fisio-n3" placeholder="3º (opcional)">
+          </div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Pacientes prescritos</label>
+        <input type="number" id="fisio-prescritos" placeholder="0" min="0" max="99">
+      </div>
+      <button class="btn btn-primary" onclick="enviarLancamento()">Enviar</button>
+    </div>
+    <button class="btn btn-secondary" onclick="voltar()">Voltar</button>
+  </div>
+</div>
+
+<!-- VIEW: FISIO OK -->
+<div class="view" id="view-fisio-ok">
+  <div class="success-box">
+    <div class="success-icon">✅</div>
+    <div class="success-title">Registrado!</div>
+    <div class="success-sub" id="success-sub">Lançamento enviado com sucesso.</div>
+  </div>
+  <button class="btn btn-secondary" style="margin-top:16px" onclick="voltar()">Voltar ao início</button>
+</div>
+
+<!-- VIEW: PIN -->
+<div class="view" id="view-pin">
+  <div class="card">
+    <div class="card-title">Acesso restrito</div>
+    <div class="form-group">
+      <label>PIN</label>
+      <input type="password" id="pin-input" class="pin-input" placeholder="·····" maxlength="5" onkeydown="if(event.key==='Enter')verificarPin()">
+    </div>
+    <button class="btn btn-primary" onclick="verificarPin()">Entrar</button>
+    <button class="btn btn-secondary" onclick="voltar()">Voltar</button>
+    <div id="pin-erro" style="display:none;color:var(--erro);font-size:13px;text-align:center;margin-top:10px">PIN incorreto.</div>
+  </div>
+</div>
+
+<!-- VIEW: CHEFE -->
+<div class="view" id="view-chefe">
+  <div class="tabs">
+    <div class="tab active" onclick="mudarTab('chefe','lanc')">Lançamentos</div>
+    <div class="tab" onclick="mudarTab('chefe','escala')">Escala</div>
+    <div class="tab" onclick="mudarTab('chefe','dim')">Dimensionamento</div>
+  </div>
+
+  <div class="tab-content active" id="chefe-tab-lanc">
+    <button class="refresh-btn" onclick="carregarLancamentos()">↻ Atualizar</button>
+    <div class="card">
+      <div class="card-title">Turno atual</div>
+      <div class="stat-grid">
+        <div class="stat-card"><div class="stat-num" id="c-stat-info">0</div><div class="stat-label">Informados</div></div>
+        <div class="stat-card"><div class="stat-num" id="c-stat-pend">0</div><div class="stat-label">Pendentes</div></div>
+        <div class="stat-card"><div class="stat-num" id="c-stat-total">0</div><div class="stat-label">Total prescritos</div></div>
+      </div>
+      <div id="c-pendentes"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Lançamentos</div>
+      <div id="c-lancamentos"><div class="loading"><div class="loading-spinner"></div>Carregando...</div></div>
+    </div>
+    <button class="btn btn-primary" onclick="mudarTab('chefe','dim');calcularDim()">Calcular dimensionamento →</button>
+    <button class="btn btn-secondary" onclick="abrirModalEditar()">✏️ Editar lançamento</button>
+    <button class="btn-reset" onclick="confirmarReset('chefe')">🗑 Zerar turno</button>
+    <button class="btn btn-secondary" style="margin-top:8px" onclick="sair()">Sair</button>
+  </div>
+
+  <div class="tab-content" id="chefe-tab-escala">
+    <div class="card">
+      <div class="card-title">Quem está em cada setor</div>
+      <div id="c-escala"><div class="empty-state"><div class="empty-icon">📋</div>Carregando escala...</div></div>
+    </div>
+    <button class="btn btn-secondary" onclick="sair()">Sair</button>
+  </div>
+
+  <div class="tab-content" id="chefe-tab-dim">
+    <div id="c-dim-resultado"></div>
+    <button class="btn btn-secondary" onclick="mudarTab('chefe','lanc')">← Voltar</button>
+    <button class="btn btn-secondary" style="margin-top:8px" onclick="sair()">Sair</button>
+  </div>
+</div>
+
+<!-- VIEW: COORD -->
+<div class="view" id="view-coord">
+  <div class="tabs">
+    <div class="tab active" onclick="mudarTab('coord','hoje')">Hoje</div>
+    <div class="tab" onclick="mudarTab('coord','escala')">Escala</div>
+    <div class="tab" onclick="mudarTab('coord','graficos')">Gráficos</div>
+    <div class="tab" onclick="mudarTab('coord','hist')">Histórico</div>
+  </div>
+
+  <div class="tab-content active" id="coord-tab-hoje">
+    <button class="refresh-btn" onclick="carregarLancamentos();renderCoordHoje()">↻ Atualizar</button>
+    <div class="card">
+      <div class="card-title">Visão geral do dia</div>
+      <div class="stat-grid">
+        <div class="stat-card"><div class="stat-num" id="coord-stat-info">0</div><div class="stat-label">Informados</div></div>
+        <div class="stat-card"><div class="stat-num" id="coord-stat-pend">0</div><div class="stat-label">Pendentes</div></div>
+        <div class="stat-card"><div class="stat-num" id="coord-stat-total">0</div><div class="stat-label">Prescritos</div></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Lançamentos</div>
+      <div id="coord-lancamentos"><div class="loading"><div class="loading-spinner"></div></div></div>
+    </div>
+    <button class="btn btn-secondary" onclick="sair()">Sair</button>
+  </div>
+
+  <div class="tab-content" id="coord-tab-escala">
+    <div class="card">
+      <div class="card-title">Escala do turno</div>
+      <div id="coord-escala"></div>
+    </div>
+    <button class="btn btn-secondary" onclick="sair()">Sair</button>
+  </div>
+
+  <div class="tab-content" id="coord-tab-graficos">
+    <div class="card">
+      <div class="card-title">Uso de apoios por setor (últimos 30 dias)</div>
+      <div id="coord-graficos"><div class="empty-state"><div class="empty-icon">📊</div>Calculando dados...</div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Dias com acionamento de apoio</div>
+      <div id="coord-grafico-dias"></div>
+    </div>
+    <button class="btn btn-secondary" onclick="sair()">Sair</button>
+  </div>
+
+  <div class="tab-content" id="coord-tab-hist">
+    <div class="card">
+      <div class="card-title">Histórico de dimensionamentos</div>
+      <div id="coord-hist"><div class="loading"><div class="loading-spinner"></div></div></div>
+    </div>
+    <button class="btn btn-secondary" onclick="sair()">Sair</button>
+  </div>
+</div>
+
+<!-- MODAL EDITAR -->
+<div class="modal-overlay" id="modal-editar">
+  <div class="modal-inner">
+    <div class="modal-title">Editar lançamento</div>
+    <div class="modal-sub">Selecione o setor e corrija o número de prescritos.</div>
+    <div class="form-group">
+      <label>Setor</label>
+      <select id="edit-setor"></select>
+    </div>
+    <div class="form-group">
+      <label>Novo número de prescritos</label>
+      <input type="number" id="edit-prescritos" min="0" max="99">
+    </div>
+    <button class="btn btn-primary" onclick="salvarEdicao()">Salvar</button>
+    <button class="btn btn-secondary" onclick="fecharModal('modal-editar')">Cancelar</button>
+  </div>
+</div>
+
+<!-- MODAL CONFIRM RESET -->
+<div class="modal-overlay" id="modal-reset">
+  <div class="modal-inner">
+    <div class="modal-title">Zerar turno?</div>
+    <div class="modal-sub">Todos os lançamentos do turno atual serão apagados. Ação irreversível.</div>
+    <button class="btn btn-danger" onclick="executarReset()">Sim, zerar agora</button>
+    <button class="btn btn-secondary" onclick="fecharModal('modal-reset')">Cancelar</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- FIREBASE -->
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut }
+  from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+import { getFirestore, doc, setDoc, getDoc, collection, query, where,
+  getDocs, deleteDoc, onSnapshot, orderBy, limit }
+  from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
+const firebaseConfig = {
+  apiKey: "AIzaSyB76HkU2NX7nydeAJsbiCgfsAbJMUY2sYI",
+  authDomain: "fisio-hru.firebaseapp.com",
+  projectId: "fisio-hru",
+  storageBucket: "fisio-hru.firebasestorage.app",
+  messagingSenderId: "544537712604",
+  appId: "1:544537712604:web:c1af2152aa2431fa246119"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const provider = new GoogleAuthProvider();
+
+// =====================
+// DADOS
+// =====================
+const PIN = '7239#';
+const LIMITE = 10;
+
+const SETORES = {
+  'CIRÚRGICA / CARDIOLÓGICA': [
+    { id: '4sul', nome: '4º Sul', tipo: 'enfermaria' },
+    { id: '4norte', nome: '4º Norte', tipo: 'enfermaria' },
+    { id: '8sul', nome: '8º Sul', tipo: 'enfermaria' },
+  ],
+  'CUIDADO CLÍNICO': [
+    { id: '3norte', nome: '3º Norte', tipo: 'enfermaria' },
+    { id: '5norte', nome: '5º Norte', tipo: 'enfermaria' },
+    { id: '5sul', nome: '5º Sul', tipo: 'enfermaria' },
+    { id: '6norte', nome: '6º Norte', tipo: 'enfermaria' },
+    { id: '6sul', nome: '6º Sul', tipo: 'enfermaria' },
+    { id: '7norte', nome: '7º Norte', tipo: 'enfermaria' },
+  ],
+  'ONCOHEMATOLOGIA / TMO': [
+    { id: '7sul', nome: '7º Sul', tipo: 'oncologia' },
+  ],
+  'UNIDADES FECHADAS': [
+    { id: 'uti3sul', nome: 'UTI 3º Sul', tipo: 'uti' },
+    { id: 'uti4sul', nome: 'UTI 4º Sul', tipo: 'uti' },
+    { id: 'utipac', nome: 'UTI PAC', tipo: 'uti_apoio', apoio_max: 6 },
+    { id: 'uticoronariana', nome: 'UTI Coronariana', tipo: 'uti_apoio', apoio_max: 7 },
+    { id: 'usin', nome: 'USIN', tipo: 'uti' },
+    { id: 'emergencia', nome: 'Emergência', tipo: 'emergencia', fisios: 1 },
+  ],
+};
+
+const TODOS = Object.values(SETORES).flat();
+const getSetor = id => TODOS.find(s => s.id === id);
+
+let turnoSelecionado = null;
+let lancamentosCache = {};
+let perfilAtual = null;
+let resetTarget = null;
+
+// =====================
+// HELPERS
+// =====================
+function getHoje() { return new Date().toISOString().slice(0,10); }
+
+function getChave(turno) { return `${getHoje()}_${turno}`; }
+
+function mostrarView(id) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function toast(msg, dur=2500) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), dur);
+}
+
+function abrirModal(id) { document.getElementById(id).classList.add('open'); }
+function fecharModal(id) { document.getElementById(id).classList.remove('open'); }
+
+function mudarTab(perfil, tab) {
+  const prefix = perfil === 'chefe' ? 'chefe' : 'coord';
+  document.querySelectorAll(`#view-${prefix} .tab`).forEach((t,i) => {
+    const tabs = perfil === 'chefe' ? ['lanc','escala','dim'] : ['hoje','escala','graficos','hist'];
+    t.classList.toggle('active', tabs[i] === tab);
+  });
+  document.querySelectorAll(`#view-${prefix} .tab-content`).forEach(tc => tc.classList.remove('active'));
+  document.getElementById(`${prefix}-tab-${tab}`).classList.add('active');
+
+  if (perfil === 'chefe' && tab === 'escala') renderEscala('c-escala');
+  if (perfil === 'coord' && tab === 'escala') renderEscala('coord-escala');
+  if (perfil === 'coord' && tab === 'graficos') renderGraficos();
+  if (perfil === 'coord' && tab === 'hist') renderHistorico();
+}
+
+window.mudarTab = mudarTab;
+window.fecharModal = fecharModal;
+
+// =====================
+// AUTH
+// =====================
+onAuthStateChanged(auth, user => {
+  if (user) {
+    document.getElementById('header-user').style.display = 'flex';
+    document.getElementById('user-email-display').textContent = user.email;
+    mostrarView('view-home');
+  } else {
+    document.getElementById('header-user').style.display = 'none';
+    mostrarView('view-login');
+  }
+});
+
+window.fazerLogin = async () => {
+  try { await signInWithPopup(auth, provider); }
+  catch(e) { toast('Erro ao entrar. Tente novamente.'); }
+};
+
+window.fazerLogout = async () => {
+  await signOut(auth);
+  mostrarView('view-login');
+};
+
+window.sair = () => { mostrarView('view-home'); perfilAtual = null; };
+
+// =====================
+// HEADER
+// =====================
+function atualizarHeader() {
+  const h = new Date().getHours(), m = new Date().getMinutes();
+  const t = h*60+m;
+  let turno = t < 7*60+30 ? 'Manhã' : t < 13*60+30 ? 'Tarde' : t < 19*60 ? 'SN' : 'Manhã';
+  const icons = { 'Manhã':'☀️', 'Tarde':'🌤', 'SN':'🌙' };
+  document.getElementById('turno-badge').textContent = `${icons[turno]} ${turno}`;
+  const hoje = new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'long',year:'numeric'});
+  document.getElementById('header-date').textContent = hoje.charAt(0).toUpperCase()+hoje.slice(1);
+}
+atualizarHeader();
+
+// =====================
+// FISIO
+// =====================
+window.irParaFisio = () => {
+  popularSetores();
+  turnoSelecionado = null;
+  document.querySelectorAll('.turno-opt').forEach(o => o.classList.remove('selected'));
+  document.getElementById('fisio-setor').value = '';
+  document.getElementById('fisio-bloqueado').style.display = 'none';
+  document.getElementById('fisio-form-extra').style.display = 'none';
+  document.getElementById('fisio-n1').value = '';
+  document.getElementById('fisio-n2').value = '';
+  document.getElementById('fisio-n3').value = '';
+  document.getElementById('fisio-prescritos').value = '';
+  mostrarView('view-fisio');
+};
+
+window.voltar = () => mostrarView('view-home');
+
+window.selecionarTurno = (t, el) => {
+  turnoSelecionado = t;
+  document.querySelectorAll('.turno-opt').forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected');
+  onSetorChange();
+};
+
+function popularSetores() {
+  const sel = document.getElementById('fisio-setor');
+  sel.innerHTML = '<option value="">Selecione o setor</option>';
+  Object.entries(SETORES).forEach(([grupo, setores]) => {
+    const og = document.createElement('optgroup');
+    og.label = grupo;
+    setores.forEach(s => {
+      const opt = document.createElement('option');
+      opt.value = s.id;
+      opt.textContent = s.nome;
+      og.appendChild(opt);
+    });
+    sel.appendChild(og);
+  });
+}
+
+window.onSetorChange = async () => {
+  const setorId = document.getElementById('fisio-setor').value;
+  if (!setorId || !turnoSelecionado) {
+    document.getElementById('fisio-bloqueado').style.display = 'none';
+    document.getElementById('fisio-form-extra').style.display = 'none';
+    return;
+  }
+  const ref = doc(db, 'lancamentos', `${getChave(turnoSelecionado)}_${setorId}`);
+  const snap = await getDoc(ref);
+  if (snap.exists()) {
+    const d = snap.data();
+    const nomes = [d.fisio1, d.fisio2, d.fisio3].filter(Boolean).join(', ');
+    document.getElementById('fisio-bloqueado-msg').innerHTML =
+      `<strong>${getSetor(setorId).nome}</strong> já foi informado por <strong>${nomes}</strong> — ${d.prescritos} prescritos às ${d.hora}.`;
+    document.getElementById('fisio-bloqueado').style.display = 'block';
+    document.getElementById('fisio-form-extra').style.display = 'none';
+  } else {
+    document.getElementById('fisio-bloqueado').style.display = 'none';
+    document.getElementById('fisio-form-extra').style.display = 'block';
+  }
+};
+
+window.enviarLancamento = async () => {
+  if (!turnoSelecionado) { toast('Selecione o turno.'); return; }
+  const setorId = document.getElementById('fisio-setor').value;
+  if (!setorId) { toast('Selecione o setor.'); return; }
+  const n1 = document.getElementById('fisio-n1').value.trim();
+  if (!n1) { toast('Informe ao menos o 1º nome.'); return; }
+  const prescritos = document.getElementById('fisio-prescritos').value;
+  if (prescritos === '' || parseInt(prescritos) < 0) { toast('Informe o número de prescritos.'); return; }
+
+  const setor = getSetor(setorId);
+  const agora = new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  const user = auth.currentUser;
+
+  try {
+    await setDoc(doc(db, 'lancamentos', `${getChave(turnoSelecionado)}_${setorId}`), {
+      setorId,
+      turno: turnoSelecionado,
+      data: getHoje(),
+      fisio1: n1,
+      fisio2: document.getElementById('fisio-n2').value.trim() || null,
+      fisio3: document.getElementById('fisio-n3').value.trim() || null,
+      prescritos: parseInt(prescritos),
+      hora: agora,
+      uid: user.uid,
+      email: user.email
+    });
+    const nomes = [n1, document.getElementById('fisio-n2').value.trim(), document.getElementById('fisio-n3').value.trim()].filter(Boolean).join(', ');
+    document.getElementById('success-sub').textContent =
+      `${setor.nome} · ${prescritos} prescritos · ${nomes}`;
+    mostrarView('view-fisio-ok');
+  } catch(e) { toast('Erro ao salvar. Verifique a conexão.'); }
+};
+
+// =====================
+// PIN
+// =====================
+window.irParaPin = (perfil) => {
+  perfilAtual = perfil;
+  document.getElementById('pin-input').value = '';
+  document.getElementById('pin-erro').style.display = 'none';
+  mostrarView('view-pin');
+};
+
+window.verificarPin = () => {
+  const pin = document.getElementById('pin-input').value;
+  if (pin === PIN) {
+    if (perfilAtual === 'chefe') {
+      mostrarView('view-chefe');
+      mudarTab('chefe','lanc');
+      carregarLancamentos();
+    } else {
+      mostrarView('view-coord');
+      mudarTab('coord','hoje');
+      carregarLancamentos().then(renderCoordHoje);
+      renderHistorico();
+    }
+  } else {
+    document.getElementById('pin-erro').style.display = 'block';
+  }
+};
+
+// =====================
+// LANÇAMENTOS
+// =====================
+async function carregarLancamentos() {
+  const turno = turnoSelecionado || getTurnoAtual();
+  const q = query(collection(db, 'lancamentos'),
+    where('data','==',getHoje()),
+    where('turno','==',turno));
+  const snap = await getDocs(q);
+  lancamentosCache = {};
+  snap.forEach(d => { lancamentosCache[d.data().setorId] = d.data(); });
+  renderLancamentos('c-lancamentos');
+  renderLancamentos('coord-lancamentos');
+  atualizarStats();
+  return lancamentosCache;
+}
+window.carregarLancamentos = carregarLancamentos;
+
+function getTurnoAtual() {
+  const h=new Date().getHours(),m=new Date().getMinutes(),t=h*60+m;
+  return t<7*60+30?'manha':t<13*60+30?'tarde':'noite';
+}
+
+function atualizarStats() {
+  const informados = Object.keys(lancamentosCache).length;
+  const total = TODOS.length;
+  const pendentes = total - informados;
+  const totalP = Object.values(lancamentosCache).reduce((a,b)=>a+(b.prescritos||0),0);
+
+  ['c','coord'].forEach(p => {
+    const si = document.getElementById(`${p}-stat-info`);
+    const sp = document.getElementById(`${p}-stat-pend`);
+    const st = document.getElementById(`${p}-stat-total`);
+    if (si) si.textContent = informados;
+    if (sp) sp.textContent = pendentes;
+    if (st) st.textContent = totalP;
+  });
+
+  // pendentes chips
+  const pendEl = document.getElementById('c-pendentes');
+  if (pendEl) {
+    const pend = TODOS.filter(s => !lancamentosCache[s.id]);
+    pendEl.innerHTML = pend.length
+      ? '<div style="margin-top:8px">'+pend.map(s=>`<span class="pendente-chip">${s.nome}</span>`).join('')+'</div>'
+      : '<div style="color:var(--ok);font-size:13px;margin-top:8px;font-weight:600">✅ Todos os setores informados!</div>';
+  }
+}
+
+function renderLancamentos(elId) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  if (!Object.keys(lancamentosCache).length) {
+    el.innerHTML = '<div class="empty-state"><div class="empty-icon">📭</div>Nenhum lançamento ainda.</div>';
+    return;
+  }
+  let html = '';
+  Object.entries(SETORES).forEach(([grupo, setores]) => {
+    const com = setores.filter(s => lancamentosCache[s.id]);
+    if (!com.length) return;
+    html += `<div class="linha-header">${grupo}</div>`;
+    com.forEach(s => {
+      const l = lancamentosCache[s.id];
+      const p = l.prescritos;
+      const cls = p>15?'way-over':p>10?'over':'';
+      const nomes = [l.fisio1,l.fisio2,l.fisio3].filter(Boolean).join(' · ');
+      html += `<div class="lancamento-item">
+        <div class="lanc-top">
+          <div class="lanc-setor">${s.nome}</div>
+          <div class="lanc-num ${cls}">${p}</div>
+        </div>
+        <div class="lanc-fisios">${nomes}</div>
+        <div class="lanc-hora">${l.hora}</div>
+      </div>`;
+    });
+  });
+  el.innerHTML = html;
+}
+
+// =====================
+// ESCALA
+// =====================
+function renderEscala(elId) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  let html = '';
+  Object.entries(SETORES).forEach(([grupo, setores]) => {
+    html += `<div class="linha-header">${grupo}</div>`;
+    setores.forEach(s => {
+      const l = lancamentosCache[s.id];
+      const nomes = l ? [l.fisio1,l.fisio2,l.fisio3].filter(Boolean).join(', ') : '—';
+      const statusClass = l ? 'status-ok' : 'status-pendente';
+      html += `<div class="escala-item">
+        <div class="escala-setor">${s.nome}</div>
+        <div class="escala-fisios">${nomes}</div>
+        <div class="escala-status ${statusClass}"></div>
+      </div>`;
+    });
+  });
+  el.innerHTML = html;
+}
+
+// =====================
+// DIMENSIONAMENTO
+// =====================
+window.calcularDim = () => {
+  const turno = getTurnoAtual();
+  const labels = {manha:'Manhã',tarde:'Tarde',noite:'SN'};
+  const turnoLabel = labels[turno] || 'Manhã';
+
+  const enfermarias = TODOS.filter(s=>s.tipo==='enfermaria');
+  const utipac = TODOS.find(s=>s.id==='utipac');
+  const uticor = TODOS.find(s=>s.id==='uticoronariana');
+  const emerg = TODOS.find(s=>s.tipo==='emergencia');
+
+  let excedente = 0;
+  enfermarias.forEach(s => {
+    const l = lancamentosCache[s.id];
+    if (l && l.prescritos > LIMITE) excedente += l.prescritos - LIMITE;
+  });
+
+  let pending = excedente;
+  const apoios = [];
+
+  if (pending > 0 && utipac) {
+    const q = Math.min(pending, utipac.apoio_max);
+    pending -= q;
+    if (q > 0) apoios.push({ origem: 'UTI PAC', qtd: q });
+  }
+  if (pending > 0 && uticor) {
+    const q = Math.min(pending, uticor.apoio_max);
+    pending -= q;
+    if (q > 0) apoios.push({ origem: 'UTI Coronariana', qtd: q });
+  }
+  if (pending > 0 && emerg) {
+    const le = lancamentosCache[emerg.id];
+    const cap = Math.max(0, LIMITE - (le ? le.prescritos : 0));
+    const q = Math.min(pending, cap);
+    pending -= q;
+    if (q > 0) apoios.push({ origem: 'Emergência', qtd: q });
+  }
+
+  // Média (sem oncologia)
+  const noCalc = TODOS.filter(s=>s.tipo!=='oncologia');
+  let totalP=0, totalF=0;
+  noCalc.forEach(s => {
+    const l = lancamentosCache[s.id];
+    if (l) { totalP+=l.prescritos; totalF++; }
+  });
+  const media = totalF > 0 ? Math.round(totalP/totalF) : 0;
+
+  const el = document.getElementById('c-dim-resultado');
+
+  let apoiosHtml = '';
+  if (!apoios.length) {
+    apoiosHtml = `<div class="apoio-item">✅ Sem necessidade de apoio neste turno.</div>`;
+  } else {
+    apoiosHtml = apoios.map(a =>
+      `<div class="apoio-item">📌 ${a.origem} apoia com <strong>${a.qtd}</strong> paciente${a.qtd>1?'s':''}</div>`
+    ).join('');
+  }
+
+  const avisoHtml = pending > 0
+    ? `<div class="alerta-box">⚠️ <strong>${pending}</strong> paciente(s) sem cobertura após todos os apoios disponíveis.</div>`
+    : '';
+
+  el.innerHTML = `
+    <div class="resultado-box">
+      <div class="resultado-title">Dimensionamento · ${turnoLabel}</div>
+      ${apoiosHtml}
+      ${avisoHtml}
+      <div class="media-line"><span>Média</span><span class="media-num">${media}</span></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Texto para WhatsApp</div>
+      <div class="texto-wpp" id="texto-wpp">${gerarTexto(apoios, media, turnoLabel, pending)}</div>
+      <button class="btn-copy" onclick="copiarTexto()">📋 Copiar para WhatsApp</button>
+    </div>`;
+
+  // Salvar no histórico
+  salvarHistorico(apoios, media, turnoLabel, pending);
+};
+
+function gerarTexto(apoios, media, turno, excedente) {
+  let txt = `*Divisão Apoios - ${turno}*\n\n`;
+  if (apoios.length) {
+    apoios.forEach(a => txt += `• ${a.origem} apoia ${a.qtd} paciente${a.qtd>1?'s':''}\n`);
+    if (excedente>0) txt += `⚠️ ${excedente} paciente(s) sem cobertura\n`;
+  } else {
+    txt += `✅ Sem necessidade de apoio.\n`;
+  }
+  txt += `\nMédia: ${media}\n\nBom plantão! 🏥`;
+  return txt;
+}
+
+window.copiarTexto = () => {
+  const txt = document.getElementById('texto-wpp')?.textContent || '';
+  navigator.clipboard.writeText(txt).then(()=>toast('✅ Copiado!')).catch(()=>toast('Selecione o texto manualmente.'));
+};
+
+// =====================
+// EDITAR (CHEFE)
+// =====================
+window.abrirModalEditar = () => {
+  const sel = document.getElementById('edit-setor');
+  sel.innerHTML = '';
+  Object.values(lancamentosCache).forEach(l => {
+    const s = getSetor(l.setorId);
+    if (!s) return;
+    const opt = document.createElement('option');
+    opt.value = l.setorId;
+    opt.textContent = `${s.nome} (${l.prescritos})`;
+    sel.appendChild(opt);
+  });
+  if (!sel.options.length) { toast('Nenhum lançamento para editar.'); return; }
+  abrirModal('modal-editar');
+};
+
+window.salvarEdicao = async () => {
+  const setorId = document.getElementById('edit-setor').value;
+  const novoP = parseInt(document.getElementById('edit-prescritos').value);
+  if (!setorId || isNaN(novoP)) { toast('Preencha os campos.'); return; }
+
+  const turno = getTurnoAtual();
+  const ref = doc(db,'lancamentos',`${getChave(turno)}_${setorId}`);
+  const snap = await getDoc(ref);
+  if (snap.exists()) {
+    await setDoc(ref, { ...snap.data(), prescritos: novoP, editadoPor: auth.currentUser.email }, { merge: true });
+    fecharModal('modal-editar');
+    await carregarLancamentos();
+    toast('✅ Lançamento atualizado.');
+  }
+};
+
+// =====================
+// RESET
+// =====================
+window.confirmarReset = (t) => { resetTarget=t; abrirModal('modal-reset'); };
+window.executarReset = async () => {
+  const turno = getTurnoAtual();
+  const q = query(collection(db,'lancamentos'), where('data','==',getHoje()), where('turno','==',turno));
+  const snap = await getDocs(q);
+  for (const d of snap.docs) await deleteDoc(d.ref);
+  lancamentosCache = {};
+  fecharModal('modal-reset');
+  renderLancamentos('c-lancamentos');
+  renderLancamentos('coord-lancamentos');
+  atualizarStats();
+  toast('Turno zerado.');
+};
+
+// =====================
+// COORDENAÇÃO
+// =====================
+window.renderCoordHoje = () => {
+  renderLancamentos('coord-lancamentos');
+  atualizarStats();
+};
+
+// =====================
+// HISTÓRICO
+// =====================
+async function salvarHistorico(apoios, media, turno, excedente) {
+  const id = `${getHoje()}_${turno}_${Date.now()}`;
+  await setDoc(doc(db,'historico',id),{
+    data: getHoje(),
+    turno,
+    apoios,
+    media,
+    excedente,
+    timestamp: Date.now()
+  });
+}
+
+async function renderHistorico() {
+  const el = document.getElementById('coord-hist');
+  if (!el) return;
+  el.innerHTML = '<div class="loading"><div class="loading-spinner"></div></div>';
+  const q = query(collection(db,'historico'), orderBy('timestamp','desc'), limit(30));
+  const snap = await getDocs(q);
+  if (snap.empty) { el.innerHTML='<div class="empty-state"><div class="empty-icon">📭</div>Nenhum registro ainda.</div>'; return; }
+  let html='';
+  snap.forEach(d=>{
+    const r=d.data();
+    const apoioStr = r.apoios&&r.apoios.length
+      ? r.apoios.map(a=>`${a.origem}: ${a.qtd}`).join(' · ')
+      : 'Sem apoios';
+    html+=`<div class="hist-item">
+      <div class="hist-top">
+        <div class="hist-data">${r.data}</div>
+        <div class="hist-turno">${r.turno}</div>
+      </div>
+      <div class="hist-apoio">${apoioStr} · Média: ${r.media}</div>
+    </div>`;
+  });
+  el.innerHTML=html;
+}
+
+// =====================
+// GRÁFICOS
+// =====================
+async function renderGraficos() {
+  const el = document.getElementById('coord-graficos');
+  const el2 = document.getElementById('coord-grafico-dias');
+  if (!el) return;
+  el.innerHTML='<div class="loading"><div class="loading-spinner"></div></div>';
+
+  const q = query(collection(db,'historico'), orderBy('timestamp','desc'), limit(90));
+  const snap = await getDocs(q);
+
+  const contadores = {};
+  let diasComApoio=0, diasSemApoio=0;
+
+  snap.forEach(d=>{
+    const r=d.data();
+    if (r.apoios&&r.apoios.length) {
+      diasComApoio++;
+      r.apoios.forEach(a=>{
+        contadores[a.origem]=(contadores[a.origem]||0)+a.qtd;
+      });
+    } else { diasSemApoio++; }
+  });
+
+  if (!Object.keys(contadores).length) {
+    el.innerHTML='<div class="empty-state"><div class="empty-icon">📊</div>Dados insuficientes ainda. Use o dimensionamento para gerar histórico.</div>';
+  } else {
+    const max=Math.max(...Object.values(contadores));
+    let html='';
+    Object.entries(contadores).sort((a,b)=>b[1]-a[1]).forEach(([setor,qtd])=>{
+      const pct=Math.round((qtd/max)*100);
+      const cls=pct>66?'alerta':pct>33?'':'ok';
+      html+=`<div class="chart-bar-wrap">
+        <div class="chart-bar-label"><span>${setor}</span><span>${qtd} pacientes cedidos</span></div>
+        <div class="chart-bar-bg"><div class="chart-bar-fill ${cls}" style="width:${pct}%"></div></div>
+      </div>`;
+    });
+    el.innerHTML=html;
+  }
+
+  const total=diasComApoio+diasSemApoio;
+  if (el2 && total>0) {
+    const pctApoio=Math.round((diasComApoio/total)*100);
+    el2.innerHTML=`
+      <div class="stat-grid">
+        <div class="stat-card"><div class="stat-num" style="color:var(--erro)">${diasComApoio}</div><div class="stat-label">Dias com apoio</div></div>
+        <div class="stat-card"><div class="stat-num" style="color:var(--ok)">${diasSemApoio}</div><div class="stat-label">Dias sem apoio</div></div>
+        <div class="stat-card"><div class="stat-num">${pctApoio}%</div><div class="stat-label">Taxa de acionamento</div></div>
+      </div>`;
+  }
+}
+
+// Popular select setores (fisio form)
+popularSetores();
+</script>
+</body>
+</html>
