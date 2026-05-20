@@ -39,40 +39,7 @@ body {
   overflow-x: hidden;
 }
 
-/* MARCA D'ÁGUA */
-.watermark {
-  position: fixed;
-  bottom: 0; left: 0; right: 0; top: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  pointer-events: none;
-  z-index: 0;
-  overflow: hidden;
-}
-.watermark-text {
-  font-family: 'DM Mono', monospace;
-  font-size: 72px;
-  font-weight: 500;
-  color: rgba(0,102,51,0.04);
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  transform: rotate(-35deg);
-  white-space: nowrap;
-  user-select: none;
-}
-.watermark-sub {
-  position: fixed;
-  bottom: 10px;
-  right: 14px;
-  font-family: 'DM Mono', monospace;
-  font-size: 9px;
-  color: rgba(0,102,51,0.3);
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  pointer-events: none;
-  z-index: 999;
-}
+
 
 /* HEADER */
 .header {
@@ -741,9 +708,7 @@ select {
 </head>
 <body>
 
-<!-- MARCA D'ÁGUA -->
-<div class="watermark"><div class="watermark-text">versão de teste · Okubo</div></div>
-<div class="watermark-sub">© versão de teste · okubo · fisio-hru</div>
+
 
 <!-- HEADER -->
 <div class="header">
@@ -915,7 +880,11 @@ select {
 
   <div class="tab-content" id="fisio-tab-dimensionamento">
     <div id="fisio-dim-conteudo">
-      <div class="empty-state"><div class="empty-icon">📊</div>O dimensionamento ainda não foi calculado pelo chefe de plantão.</div>
+      <div class="empty-state"><div class="empty-icon">📊</div>O dimensionamento ainda não foi publicado pelo chefe de plantão.</div>
+    </div>
+    <div id="fisio-dim-leitura" style="display:none">
+      <button class="btn btn-success" style="background:var(--ok);color:white;margin-bottom:10px" onclick="marcarComoLido()">✅ Confirmar leitura</button>
+      <div id="fisio-leitura-status" style="text-align:center;font-size:12px;color:var(--texto-soft)"></div>
     </div>
     <button class="btn btn-secondary" onclick="voltar()">Voltar</button>
   </div>
@@ -999,8 +968,8 @@ select {
   <div class="tabs">
     <div class="tab active" onclick="mudarTab('coord','hoje')">Hoje</div>
     <div class="tab" onclick="mudarTab('coord','escala')">Escala</div>
-    <div class="tab" onclick="mudarTab('coord','graficos')">Gráficos</div>
-    <div class="tab" onclick="mudarTab('coord','hist')">Histórico</div>
+    <div class="tab" onclick="mudarTab('coord','graficos')">Indicadores</div>
+    <div class="tab" onclick="mudarTab('coord','hist')">Gráfico</div>
   </div>
 
   <div class="tab-content active" id="coord-tab-hoje">
@@ -1036,11 +1005,11 @@ select {
 
   <div class="tab-content" id="coord-tab-graficos">
     <div class="card">
-      <div class="card-title">Uso de apoios por setor (últimos 30 dias)</div>
+      <div class="card-title">Indicadores do mês</div>
       <div id="coord-graficos"><div class="empty-state"><div class="empty-icon">📊</div>Calculando dados...</div></div>
     </div>
     <div class="card">
-      <div class="card-title">Dias com acionamento de apoio</div>
+      <div class="card-title">Resumo de apoios</div>
       <div id="coord-grafico-dias"></div>
     </div>
     <button class="btn btn-secondary" onclick="sair()">Sair</button>
@@ -1048,8 +1017,15 @@ select {
 
   <div class="tab-content" id="coord-tab-hist">
     <div class="card">
-      <div class="card-title">Histórico de dimensionamentos</div>
-      <div id="coord-hist"><div class="loading"><div class="loading-spinner"></div></div></div>
+      <div class="card-title">Gráfico de prescritos ao longo do mês</div>
+      <div style="font-size:11px;color:var(--texto-soft);margin-bottom:12px">Linha vermelha = teto das enfermarias (fisios × 10). Quando a barra ultrapassa, as UTIs foram acionadas.</div>
+      <div id="coord-grafico-linha" style="overflow-x:auto">
+        <div class="loading"><div class="loading-spinner"></div></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Adesão ao app — mês atual</div>
+      <div id="coord-adesao"><div class="loading"><div class="loading-spinner"></div></div></div>
     </div>
     <button class="btn btn-secondary" onclick="sair()">Sair</button>
   </div>
@@ -1682,8 +1658,15 @@ window.calcularDim = () => {
     <button class="btn-copy" style="background:var(--verde);margin-top:8px" onclick="publicarDimensionamento(${JSON.stringify(apoios)}, ${media}, '${turnoLabel}', ${pending})">
       📢 Publicar para fisioterapeutas
     </button>
-    <div id="status-publicacao" style="text-align:center;font-size:12px;color:var(--texto-soft);margin-top:6px"></div>`;
+    <div id="status-publicacao" style="text-align:center;font-size:12px;color:var(--texto-soft);margin-top:6px"></div>
+    <div class="card" style="margin-top:12px">
+      <div class="card-title">Confirmações de leitura</div>
+      <div id="painel-leituras"><div class="empty-state" style="padding:16px">Publique para ver as confirmações.</div></div>
+    </div>`;
   el.innerHTML += btnPublicar;
+  // Atualizar leituras periodicamente
+  atualizarLeituras();
+  setInterval(atualizarLeituras, 30000);
 
   salvarHistorico(apoios, media, turnoLabel, pending);
 };
@@ -1796,92 +1779,207 @@ window.renderCoordHoje = () => {
 // HISTÓRICO
 // =====================
 async function salvarHistorico(apoios, media, turno, excedente) {
+  // Calcular totalPrescritos das enfermarias e teto dinâmico
+  const enfermarias = TODOS.filter(s => s.tipo === 'enfermaria');
+  let totalPrescritos = 0;
+  let fisiosEnfCount = 0;
+  const fisiosNomes = [];
+
+  TODOS.filter(s => s.tipo !== 'oncologia').forEach(s => {
+    const l = lancamentosCache[s.id];
+    if (!l) return;
+    totalPrescritos += l.prescritos || 0;
+    const nomes = [l.fisio1, l.fisio2, l.fisio3].filter(Boolean);
+    nomes.forEach(n => { if (!fisiosNomes.includes(n)) fisiosNomes.push(n); });
+    if (s.tipo === 'enfermaria') fisiosEnfCount += nomes.length;
+  });
+
+  const tetoEnfermarias = fisiosEnfCount * 10;
   const id = `${getHoje()}_${turno}_${Date.now()}`;
-  await setDoc(doc(db,'historico',id),{
+
+  await setDoc(doc(db,'historico',id), {
     data: getHoje(),
     turno,
     apoios,
     media,
     excedente,
+    totalPrescritos,
+    tetoEnfermarias,
+    fisiosNomes,
     timestamp: Date.now()
   });
 }
 
 async function renderHistorico() {
-  const el = document.getElementById('coord-hist');
+  // Gráfico de linha do tempo
+  await renderGraficoLinha();
+  await renderAdesao();
+}
+
+async function renderGraficoLinha() {
+  const el = document.getElementById('coord-grafico-linha');
   if (!el) return;
-  el.innerHTML = '<div class="loading"><div class="loading-spinner"></div></div>';
-  const q = query(collection(db,'historico'), orderBy('timestamp','desc'), limit(30));
+
+  const mesAtual = new Date().toISOString().slice(0,7); // YYYY-MM
+  const q = query(collection(db,'historico'), orderBy('timestamp','asc'));
   const snap = await getDocs(q);
-  if (snap.empty) { el.innerHTML='<div class="empty-state"><div class="empty-icon">📭</div>Nenhum registro ainda.</div>'; return; }
-  let html='';
-  snap.forEach(d=>{
-    const r=d.data();
-    const apoioStr = r.apoios&&r.apoios.length
-      ? r.apoios.map(a=>`${a.origem}: ${a.qtd}`).join(' · ')
-      : 'Sem apoios';
-    html+=`<div class="hist-item">
-      <div class="hist-top">
-        <div class="hist-data">${r.data}</div>
-        <div class="hist-turno">${r.turno}</div>
-      </div>
-      <div class="hist-apoio">${apoioStr} · Média: ${r.media}</div>
+
+  // Agrupar por data (soma dos prescritos do dia e teto dinâmico)
+  const porDia = {};
+  snap.forEach(d => {
+    const r = d.data();
+    if (!r.data || !r.data.startsWith(mesAtual)) return;
+    if (!porDia[r.data]) porDia[r.data] = { totalPrescritos: 0, teto: 0, count: 0 };
+    porDia[r.data].totalPrescritos += r.totalPrescritos || 0;
+    porDia[r.data].teto = Math.max(porDia[r.data].teto, r.tetoEnfermarias || 0);
+    porDia[r.data].count++;
+  });
+
+  const dias = Object.keys(porDia).sort();
+  if (!dias.length) {
+    el.innerHTML = '<div class="empty-state"><div class="empty-icon">📊</div>Sem dados este mês ainda.</div>';
+    return;
+  }
+
+  const maxVal = Math.max(...dias.map(d => Math.max(porDia[d].totalPrescritos, porDia[d].teto))) * 1.1;
+  const barW = 28, gap = 6, chartH = 180, labelH = 30;
+  const totalW = Math.max(300, dias.length * (barW + gap) + 40);
+
+  let svg = `<svg width="${totalW}" height="${chartH + labelH}" style="display:block">`;
+
+  // Barras
+  dias.forEach((dia, i) => {
+    const x = 20 + i * (barW + gap);
+    const val = porDia[dia].totalPrescritos;
+    const teto = porDia[dia].teto;
+    const barH = Math.round((val / maxVal) * chartH);
+    const tetoY = Math.round(chartH - (teto / maxVal) * chartH);
+    const cor = val > teto ? '#e67e22' : '#2d6e47';
+    const diaNum = dia.slice(8);
+
+    svg += `<rect x="${x}" y="${chartH - barH}" width="${barW}" height="${barH}" fill="${cor}" rx="4" opacity="0.85"/>`;
+    svg += `<text x="${x + barW/2}" y="${chartH + 18}" text-anchor="middle" font-size="10" fill="#888">${diaNum}</text>`;
+    svg += `<text x="${x + barW/2}" y="${chartH - barH - 4}" text-anchor="middle" font-size="9" fill="${cor}" font-weight="600">${val}</text>`;
+
+    // Linha de teto (segmento)
+    if (i < dias.length - 1) {
+      const x2 = 20 + (i+1) * (barW + gap) + barW/2;
+      svg += `<line x1="${x + barW/2}" y1="${tetoY}" x2="${x2}" y2="${tetoY}" stroke="#e74c3c" stroke-width="1.5" stroke-dasharray="3,2"/>`;
+    }
+    svg += `<circle cx="${x + barW/2}" cy="${tetoY}" r="3" fill="#e74c3c"/>`;
+  });
+
+  svg += `</svg>`;
+  svg += `<div style="display:flex;gap:16px;margin-top:8px;font-size:11px;color:var(--texto-soft)">
+    <span><span style="display:inline-block;width:12px;height:12px;background:#2d6e47;border-radius:2px;margin-right:4px"></span>Dentro do teto</span>
+    <span><span style="display:inline-block;width:12px;height:12px;background:#e67e22;border-radius:2px;margin-right:4px"></span>Ultrapassou teto</span>
+    <span style="color:#e74c3c">--- Teto dinâmico</span>
+  </div>`;
+
+  el.innerHTML = svg;
+}
+
+async function renderAdesao() {
+  const el = document.getElementById('coord-adesao');
+  if (!el) return;
+  const mesAtual = new Date().toISOString().slice(0,7);
+  const q = query(collection(db,'historico'), orderBy('timestamp','desc'));
+  const snap = await getDocs(q);
+
+  const adesao = {};
+  snap.forEach(d => {
+    const r = d.data();
+    if (!r.data || !r.data.startsWith(mesAtual)) return;
+    if (!r.fisiosNomes) return;
+    r.fisiosNomes.forEach(nome => {
+      adesao[nome] = (adesao[nome] || 0) + 1;
+    });
+  });
+
+  if (!Object.keys(adesao).length) {
+    el.innerHTML = '<div class="empty-state"><div class="empty-icon">👥</div>Sem dados de adesão ainda.</div>';
+    return;
+  }
+
+  const sorted = Object.entries(adesao).sort((a,b) => b[1]-a[1]);
+  const max = sorted[0][1];
+  let html = '';
+  sorted.forEach(([nome, qtd]) => {
+    const pct = Math.round((qtd/max)*100);
+    html += `<div class="chart-bar-wrap">
+      <div class="chart-bar-label"><span>${nome}</span><span>${qtd} turno${qtd>1?'s':''}</span></div>
+      <div class="chart-bar-bg"><div class="chart-bar-fill" style="width:${pct}%"></div></div>
     </div>`;
   });
-  el.innerHTML=html;
+  el.innerHTML = html;
 }
 
 // =====================
-// GRÁFICOS
+// INDICADORES (mensal, zera a cada novo mês)
 // =====================
 async function renderGraficos() {
   const el = document.getElementById('coord-graficos');
   const el2 = document.getElementById('coord-grafico-dias');
   if (!el) return;
-  el.innerHTML='<div class="loading"><div class="loading-spinner"></div></div>';
+  el.innerHTML = '<div class="loading"><div class="loading-spinner"></div></div>';
 
-  const q = query(collection(db,'historico'), orderBy('timestamp','desc'), limit(90));
+  const mesAtual = new Date().toISOString().slice(0,7); // YYYY-MM
+
+  // Buscar apenas registros do mês atual
+  const q = query(collection(db,'historico'), orderBy('timestamp','desc'));
   const snap = await getDocs(q);
 
   const contadores = {};
-  let diasComApoio=0, diasSemApoio=0;
+  const diasComApoioSet = new Set();
+  const diasSemApoioSet = new Set();
 
-  snap.forEach(d=>{
-    const r=d.data();
-    if (r.apoios&&r.apoios.length) {
-      diasComApoio++;
-      r.apoios.forEach(a=>{
-        contadores[a.origem]=(contadores[a.origem]||0)+a.qtd;
+  snap.forEach(d => {
+    const r = d.data();
+    if (!r.data || !r.data.startsWith(mesAtual)) return;
+    if (r.apoios && r.apoios.length) {
+      diasComApoioSet.add(r.data);
+      r.apoios.forEach(a => {
+        contadores[a.origem] = (contadores[a.origem] || 0) + a.qtd;
       });
-    } else { diasSemApoio++; }
+    } else {
+      diasSemApoioSet.add(r.data);
+    }
   });
 
-  if (!Object.keys(contadores).length) {
-    el.innerHTML='<div class="empty-state"><div class="empty-icon">📊</div>Dados insuficientes ainda. Use o dimensionamento para gerar histórico.</div>';
-  } else {
-    const max=Math.max(...Object.values(contadores));
-    let html='';
-    Object.entries(contadores).sort((a,b)=>b[1]-a[1]).forEach(([setor,qtd])=>{
-      const pct=Math.round((qtd/max)*100);
-      const cls=pct>66?'alerta':pct>33?'':'ok';
-      html+=`<div class="chart-bar-wrap">
-        <div class="chart-bar-label"><span>${setor}</span><span>${qtd} pacientes cedidos</span></div>
-        <div class="chart-bar-bg"><div class="chart-bar-fill ${cls}" style="width:${pct}%"></div></div>
-      </div>`;
-    });
-    el.innerHTML=html;
-  }
+  // Dias que tiveram pelo menos um turno com apoio
+  const diasComApoio = diasComApoioSet.size;
+  // Dias sem nenhum turno com apoio
+  const diasSemApoio = [...diasSemApoioSet].filter(d => !diasComApoioSet.has(d)).length;
+  const total = diasComApoio + diasSemApoio;
+  const pctApoio = total > 0 ? Math.round((diasComApoio/total)*100) : 0;
 
-  const total=diasComApoio+diasSemApoio;
-  if (el2 && total>0) {
-    const pctApoio=Math.round((diasComApoio/total)*100);
-    el2.innerHTML=`
+  // Card de resumo
+  if (el2) {
+    el2.innerHTML = `
       <div class="stat-grid">
         <div class="stat-card"><div class="stat-num" style="color:var(--erro)">${diasComApoio}</div><div class="stat-label">Dias com apoio</div></div>
         <div class="stat-card"><div class="stat-num" style="color:var(--ok)">${diasSemApoio}</div><div class="stat-label">Dias sem apoio</div></div>
         <div class="stat-card"><div class="stat-num">${pctApoio}%</div><div class="stat-label">Taxa de acionamento</div></div>
       </div>`;
   }
+
+  // Apoios por setor
+  if (!Object.keys(contadores).length) {
+    el.innerHTML = '<div class="empty-state"><div class="empty-icon">📊</div>Nenhum apoio registrado este mês.</div>';
+    return;
+  }
+
+  const max = Math.max(...Object.values(contadores));
+  let html = '<div style="font-size:11px;color:var(--texto-soft);margin-bottom:12px">Pacientes cedidos por unidade de apoio — mês atual</div>';
+  Object.entries(contadores).sort((a,b) => b[1]-a[1]).forEach(([setor, qtd]) => {
+    const pct = Math.round((qtd/max)*100);
+    const cls = pct > 66 ? 'alerta' : pct > 33 ? '' : 'ok';
+    html += `<div class="chart-bar-wrap">
+      <div class="chart-bar-label"><span>${setor}</span><span>${qtd} pacientes cedidos</span></div>
+      <div class="chart-bar-bg"><div class="chart-bar-fill ${cls}" style="width:${pct}%"></div></div>
+    </div>`;
+  });
+  el.innerHTML = html;
 }
 
 // Popular select setores (fisio form)
@@ -1983,6 +2081,30 @@ function atualizarCampoLeitos() {
 // =====================
 // ABAS FISIO
 // =====================
+// =====================
+// LEITURAS
+// =====================
+async function atualizarLeituras() {
+  const el = document.getElementById('painel-leituras');
+  if (!el) return;
+  const turno = getTurnoAtual();
+  const ref = doc(db, 'dimensionamento_publicado', `${getHoje()}_${turno}`);
+  try {
+    const snap = await getDoc(ref);
+    if (!snap.exists()) return;
+    const leituras = snap.data().leituras || [];
+    if (!leituras.length) {
+      el.innerHTML = '<div style="font-size:13px;color:#bbb;text-align:center;padding:10px">Nenhuma confirmação ainda.</div>';
+      return;
+    }
+    el.innerHTML = leituras.map(email =>
+      `<div class="escala-item">
+        <div class="escala-fisios">✅ ${email}</div>
+      </div>`
+    ).join('');
+  } catch(e) {}
+}
+
 window.mudarTabFisio = (tab) => {
   const tabs = ['informar','escala','dimensionamento'];
   document.querySelectorAll('#view-fisio .tab').forEach((t,i) => {
@@ -2004,6 +2126,8 @@ window.mudarTabFisio = (tab) => {
 // =====================
 async function carregarDimPublicado() {
   const el = document.getElementById('fisio-dim-conteudo');
+  const elLeitura = document.getElementById('fisio-dim-leitura');
+  const elStatus = document.getElementById('fisio-leitura-status');
   if (!el) return;
   el.innerHTML = '<div class="loading"><div class="loading-spinner"></div>Aguardando dimensionamento...</div>';
   try {
@@ -2022,13 +2146,41 @@ async function carregarDimPublicado() {
           <div class="card-title">Mensagem do dimensionamento</div>
           <div class="texto-wpp">${d.texto}</div>
         </div>`;
+
+      // Verificar se já leu
+      if (elLeitura) elLeitura.style.display = 'block';
+      const user = auth.currentUser;
+      const leituras = d.leituras || [];
+      if (user && leituras.includes(user.email)) {
+        if (elLeitura) elLeitura.style.display = 'none';
+        if (elStatus) { elStatus.style.display = 'block'; elStatus.textContent = '✅ Você já confirmou a leitura.'; }
+      }
     } else {
       el.innerHTML = '<div class="empty-state"><div class="empty-icon">📊</div>O dimensionamento ainda não foi publicado pelo chefe de plantão.</div>';
+      if (elLeitura) elLeitura.style.display = 'none';
     }
   } catch(e) {
     el.innerHTML = '<div class="empty-state"><div class="empty-icon">⚠️</div>Erro ao carregar. Verifique a conexão.</div>';
   }
 }
+
+window.marcarComoLido = async () => {
+  const user = auth.currentUser;
+  if (!user) return;
+  const turno = getTurnoAtual();
+  const ref = doc(db, 'dimensionamento_publicado', `${getHoje()}_${turno}`);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) return;
+  const d = snap.data();
+  const leituras = d.leituras || [];
+  if (!leituras.includes(user.email)) leituras.push(user.email);
+  await setDoc(ref, { ...d, leituras }, { merge: true });
+  const elLeitura = document.getElementById('fisio-dim-leitura');
+  const elStatus = document.getElementById('fisio-leitura-status');
+  if (elLeitura) elLeitura.style.display = 'none';
+  if (elStatus) { elStatus.style.display = 'block'; elStatus.textContent = '✅ Leitura confirmada!'; }
+  toast('✅ Leitura confirmada!');
+};
 
 </script>
 </body>
